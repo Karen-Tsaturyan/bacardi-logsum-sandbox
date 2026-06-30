@@ -89,7 +89,7 @@ def _update_group(groups, service, level, timestamp):
         groups[key]['last_seen'] = timestamp
 
 
-def _write_summary(output_path, groups):
+def _write_summary(output_path, groups, min_count=0):
     """Write aggregated groups to output CSV. Returns exit code."""
     try:
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -100,6 +100,10 @@ def _write_summary(output_path, groups):
 
             # Sort by service, then level for consistent output
             for (service, level), data in sorted(groups.items()):
+                # Skip groups below minimum count threshold
+                if data['count'] < min_count:
+                    continue
+
                 # Format timestamps back to ISO 8601 with Z suffix
                 first_iso = _format_timestamp(data['first_seen'])
                 last_iso = _format_timestamp(data['last_seen'])
@@ -128,13 +132,13 @@ def _format_timestamp(dt):
     return iso.replace('+00:00', 'Z')
 
 
-def process_events(input_path, output_path):
+def process_events(input_path, output_path, min_count=0):
     """Main processing function. Returns exit code."""
     groups, exit_code = _read_and_aggregate_events(input_path)
     if exit_code != 0:
         return exit_code
 
-    return _write_summary(output_path, groups)
+    return _write_summary(output_path, groups, min_count)
 
 
 def main():
@@ -148,6 +152,8 @@ def main():
                         help='Output path (default: summary.csv)')
     parser.add_argument('-o', '--output-file', dest='output_alt',
                         help='Alternative way to specify output path')
+    parser.add_argument('--min-count', type=int, default=0,
+                        help='Only output groups with count >= N (default: 0, no filtering)')
 
     args = parser.parse_args()
 
@@ -157,7 +163,7 @@ def main():
     input_path = Path(args.input)
     output_path = Path(output)
 
-    exit_code = process_events(input_path, output_path)
+    exit_code = process_events(input_path, output_path, args.min_count)
     sys.exit(exit_code)
 
 

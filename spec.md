@@ -107,12 +107,13 @@ For each group:
 
 ### Usage
 ```bash
-python -m logsum <input.csv> [-o <output.csv>]
+python -m logsum <input.csv> [-o <output.csv>] [--min-count N]
 ```
 
 ### Arguments
 - `<input.csv>` – Path to events CSV file (required)
 - `-o, --output` – Output path (optional, default: `summary.csv`)
+- `--min-count N` – Only include groups with count >= N (optional, default: 0, no filtering)
 
 ### Exit codes
 - `0` – Success
@@ -127,6 +128,12 @@ python -m logsum data/events.csv
 # Custom output path
 python -m logsum data/events.csv -o results/summary.csv
 
+# Filter to show only groups with 10+ events
+python -m logsum data/events.csv --min-count 10
+
+# Combine custom output and filtering
+python -m logsum data/events.csv -o high-volume.csv --min-count 50
+
 # Invalid usage
 python -m logsum
 # Exit 2: ERROR: Missing required argument <input.csv>
@@ -136,7 +143,7 @@ python -m logsum
 
 This tool does **not**:
 - Analyze or parse message content (no regex, pattern matching, or keyword extraction)
-- Filter events by time range, service, or level
+- Filter events by time range, service, or level (beyond post-aggregation count filtering)
 - Process multiple files or directories
 - Perform real-time or streaming analysis
 - Validate data against schemas (beyond basic CSV parsing)

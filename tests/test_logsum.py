@@ -129,6 +129,28 @@ def lowercase_level_csv(tmp_path):
     return csv_path
 
 
+@pytest.fixture
+def varied_count_csv(tmp_path):
+    """Create CSV with varied event counts per group."""
+    csv_path = tmp_path / "varied.csv"
+    csv_path.write_text(
+        "timestamp,level,service,message\n"
+        # Group 1: count=1
+        "2026-06-30T14:00:00Z,INFO,capacity-indicator,Event 1\n"
+        # Group 2: count=3
+        "2026-06-30T14:01:00Z,ERROR,ticketing-sync,Event 1\n"
+        "2026-06-30T14:02:00Z,ERROR,ticketing-sync,Event 2\n"
+        "2026-06-30T14:03:00Z,ERROR,ticketing-sync,Event 3\n"
+        # Group 3: count=5
+        "2026-06-30T14:04:00Z,WARNING,booking-agent-router,Event 1\n"
+        "2026-06-30T14:05:00Z,WARNING,booking-agent-router,Event 2\n"
+        "2026-06-30T14:06:00Z,WARNING,booking-agent-router,Event 3\n"
+        "2026-06-30T14:07:00Z,WARNING,booking-agent-router,Event 4\n"
+        "2026-06-30T14:08:00Z,WARNING,booking-agent-router,Event 5\n"
+    )
+    return csv_path
+
+
 # ============================================================================
 # Test: Grouping
 # ============================================================================
@@ -570,3 +592,119 @@ def test_all_four_bacardi_services(tmp_path):
         "ticketing-sync",
         "eligibility-check",
     }
+
+
+# ============================================================================
+# Test: Min Count Filtering
+# ============================================================================
+
+def test_min_count_default_no_filtering(varied_count_csv, tmp_path):
+    """Test that without --min-count, all groups are included."""
+    output_path = tmp_path / "summary.csv"
+
+    result = subprocess.run(
+        [sys.executable, "-m", "src.logsum", str(varied_count_csv), "-o", str(output_path)],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+
+    with open(output_path) as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+
+    # Should see all 3 groups
+    assert len(rows) == 3
+    counts = {int(row["count"]) for row in rows}
+    assert counts == {1, 3, 5}
+
+
+def test_min_count_filters_correctly(varied_count_csv, tmp_path):
+    """Test that --min-count 3 filters out groups with count < 3."""
+    output_path = tmp_path / "summary.csv"
+
+    result = subprocess.run(
+        [sys.executable, "-m", "src.logsum", str(varied_count_csv), "-o", str(output_path), "--min-count", "3"],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+
+    with open(output_path) as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+
+    # Should see only 2 groups (count=3 and count=5)
+    assert len(rows) == 2
+    counts = sorted([int(row["count"]) for row in rows])
+    assert counts == [3, 5]
+
+    # Verify specific groups
+    services = {row["service"] for row in rows}
+    assert services == {"ticketing-sync", "booking-agent-router"}
+
+
+def test_min_count_zero_same_as_default(varied_count_csv, tmp_path):
+    """Test that --min-count 0 behaves like no flag."""
+    output_path = tmp_path / "summary.csv"
+
+    result = subprocess.run(
+        [sys.executable, "-m", "src.logsum", str(varied_count_csv), "-o", str(output_path), "--min-count", "0"],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+
+    with open(output_path) as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+
+    # Should see all 3 groups
+    assert len(rows) == 3
+
+
+def test_min_count_higher_than_all_groups(varied_count_csv, tmp_path):
+    """Test that --min-count 100 produces header-only output."""
+    output_path = tmp_path / "summary.csv"
+
+    result = subprocess.run(
+        [sys.executable, "-m", "src.logsum", str(varied_count_csv), "-o", str(output_path), "--min-count", "100"],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+
+    with open(output_path) as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+
+    # Should see only header, no data rows
+    assert len(rows) == 0
+
+
+def test_min_count_with_single_matching_group(varied_count_csv, tmp_path):
+    """Test that --min-count 5 shows only the one group with count=5."""
+    output_path = tmp_path / "summary.csv"
+
+    result = subprocess.run(
+        [sys.executable, "-m", "src.logsum", str(varied_count_csv), "-o", str(output_path), "--min-count", "5"],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+
+    with open(output_path) as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+
+    # Should see only 1 group
+    assert len(rows) == 1
+    assert int(rows[0]["count"]) == 5
+    assert rows[0]["service"] == "booking-agent-router"
+    assert rows[0]["level"] == "WARNING"
+
