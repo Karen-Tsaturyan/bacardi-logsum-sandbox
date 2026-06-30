@@ -1,0 +1,16 @@
+timestamp,level,service,message
+2026-06-30T10:00:00Z,INFO,capacity-indicator,Started capacity check for US-01
+2026-06-30T10:01:15Z,INFO,capacity-indicator,Updated capacity: 450 slots available
+2026-06-30T10:02:30Z,ERROR,ticketing-sync,Failed to sync ticket T-12345: connection timeout
+2026-06-30T10:03:45Z,WARN,booking-agent-router,High queue depth: 350 requests pending
+2026-06-30T10:05:00Z,DEBUG,eligibility-check,Checking eligibility for customer C-99887
+2026-06-30T10:06:12Z,ERROR,capacity-indicator,Capacity data stale: last update 15min ago
+2026-06-30T10:07:23Z,,ticketing-sync,Processing ticket batch B-445
+2026-06-30T10:08:34Z,INFO,booking-agent-router,Routed 25 bookings to primary handler
+2026-06-30T10:09:45Z,ERROR,ticketing-sync,Database connection pool exhausted
+2026-06-30T10:10:56Z,INFORMATION,eligibility-check,Eligibility check passed for C-99887
+INVALID-DATE,ERROR,capacity-indicator,This row should be skipped due to bad timestamp
+2026-06-30T10:12:18Z,ERR,booking-agent-router,Failed to route booking B-778: no agents available
+2026-06-30T10:13:29Z,WARNING,capacity-indicator,Approaching capacity limit: 90% full
+2026-06-30T10:14:40Z,DEBUG,ticketing-sync,Ticket cache hit rate: 87%
+2026-06-30T10:15:51Z,INFO,eligibility-check,Processed 120 eligibility checks in last hour
