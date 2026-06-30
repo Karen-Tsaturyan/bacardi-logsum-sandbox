@@ -13,11 +13,8 @@ Tests cover all specification requirements from spec.md:
 import csv
 import subprocess
 import sys
-from pathlib import Path
 
 import pytest
-
-from src import logsum
 
 
 # ============================================================================
